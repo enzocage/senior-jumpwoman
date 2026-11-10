@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SENIOR JUMPWOMAN — C64 Original Edition</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="monitor-cabinet" aria-label="Commodore 1702 Video Monitor">
+      <header class="monitor-header">
+        <div class="brand-plate">
+          <span class="c64-stripes" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </span>
+          <span>C= 1702 VIDEO MONITOR // SENIOR JUMPWOMAN (64K PAL)</span>
+        </div>
+        <div class="power-indicator">
+          <span>POWER</span>
+          <span class="power-led" aria-hidden="true"></span>
+        </div>
+      </header>
+
+      <div id="crt-frame" class="crt-frame crt-on">
+        <canvas id="c64-canvas" width="384" height="272" tabindex="0" aria-label="Senior Jumpwoman C64 Spielfeld"></canvas>
+        <div class="crt-overlay" aria-hidden="true"></div>
+      </div>
+
+      <footer class="hardware-bar">
+        <div class="hw-group">
+          <button id="btn-title" class="hw-btn" type="button" title="Zurück zum Titelbildschirm (F1)">F1: TITEL</button>
+          <button id="btn-start" class="hw-btn accent" type="button" title="Sofort Spiel starten (F3)">F3: START</button>
+          <button id="btn-pause" class="hw-btn" type="button" title="Pause umschalten (P)">P: PAUSE</button>
+          <button id="btn-sid" class="hw-btn active" type="button" title="MOS 6581 SID Sound umschalten (M)">SID: EIN</button>
+          <button id="btn-crt" class="hw-btn active" type="button" title="PAL CRT-Scanlines umschalten">CRT: EIN</button>
+        </div>
+
+        <div class="hw-group">
+          <select id="sel-speed" class="hw-select" aria-label="Geschwindigkeit (Speed 1-8)">
+            <option value="1">SPEED 1 (MAX)</option>
+            <option value="2">SPEED 2</option>
+            <option value="3">SPEED 3</option>
+            <option value="4" selected>SPEED 4 (ORIGINAL)</option>
+            <option value="5">SPEED 5</option>
+            <option value="6">SPEED 6</option>
+            <option value="7">SPEED 7</option>
+            <option value="8">SPEED 8 (LANGSAM)</option>
+          </select>
+
+          <select id="sel-level" class="hw-select" aria-label="Level-Direktwahl (1-12)">
+            <option value="1">01 - NOTHING TO IT</option>
+            <option value="2">02 - FIRE! FIRE!</option>
+            <option value="3">03 - sreddaL</option>
+            <option value="4">04 - HELLSTONES</option>
+            <option value="5">05 - FIGURITS REVENGE</option>
+            <option value="6">06 - WALLS</option>
+            <option value="7">07 - ZIG-ZAG</option>
+            <option value="8">08 - SPELLBOUND</option>
+            <option value="9">09 - BLACKOUT</option>
+            <option value="10">10 - HERETHEREEVERYWHERE</option>
+            <option value="11">11 - HATCHLINGS</option>
+            <option value="12">12 - HURRICANE</option>
+            <option value="WELL_DONE">FINALE - WELL DONE</option>
+          </select>
+
+          <button id="btn-warp" class="hw-btn" type="button" title="Gewähltes Level direkt starten">DIREKTWAHL</button>
+        </div>
+      </footer>
+    </section>
+
+    <section class="touch-controls" id="touch-controls" aria-label="Virtueller Competition Pro Joystick">
+      <div class="dpad-grid">
+        <span></span>
+        <button class="touch-btn" data-dir="up" type="button">▲</button>
+        <span></span>
+        <button class="touch-btn" data-dir="left" type="button">◀</button>
+        <span></span>
+        <button class="touch-btn" data-dir="right" type="button">▶</button>
+        <span></span>
+        <button class="touch-btn" data-dir="down" type="button">▼</button>
+        <span></span>
+      </div>
+      <button class="fire-btn" id="touch-fire" type="button">FIRE / JUMP</button>
+    </section>
+
+    <aside class="manual-strip">
+      <span><strong>STEUERUNG:</strong> Pfeiltasten / WASD = Laufen &amp; Klettern</span>
+      <span><strong>SPRINGEN:</strong> SPACE / Z / SHIFT (+ Richtung)</span>
+      <span><strong>SEILE:</strong> Grün = Hoch, Blau = Runter</span>
+      <span><strong>EXTRA-LEBEN:</strong> Alle 7.500 Punkte</span>
+    </aside>
+  </main>
+
+  <script src="js/c64.js"></script>
+  <script src="js/sid.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const canvas = document.getElementById('c64-canvas');
+      const crtFrame = document.getElementById('crt-frame');
+      const btnTitle = document.getElementById('btn-title');
+      const btnStart = document.getElementById('btn-start');
+      const btnPause = document.getElementById('btn-pause');
+      const btnSid = document.getElementById('btn-sid');
+      const btnCrt = document.getElementById('btn-crt');
+      const selSpeed = document.getElementById('sel-speed');
+      const selLevel = document.getElementById('sel-level');
+      const btnWarp = document.getElementById('btn-warp');
+
+      const updateSidButton = (muted) => {
+        btnSid.textContent = muted ? 'SID: AUS' : 'SID: EIN';
+        btnSid.classList.toggle('active', !muted);
+      };
+
+      const game = new window.SeniorJumpwomanGame(canvas, {
+        onMuteChange: updateSidButton,
+        onLevelChange: (lv) => {
+          if (lv >= 1 && lv <= 12) {
+            selLevel.value = String(lv);
+          }
+        }
+      });
+      window.game = game;
+      game.startLoop();
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('autolevel')) {
+        const rawLv = params.get('autolevel');
+        const lv = rawLv === 'WELL_DONE' ? 'WELL_DONE' : parseInt(rawLv, 10) || 1;
+        game.quickStart(1, 4, lv);
+        // Advance past ready/spawn banner if instant=1
+        if (params.get('instant') === '1' && lv !== 'WELL_DONE') {
+          for (let i = 0; i < 180; i++) game.tick(1 / 60);
+          game.render();
+        }
+      }
+
+      // Clicking canvas unlocks SID audio and advances Title/Attract screen
+      canvas.addEventListener('click', () => {
+        window.SID.unlock();
+        canvas.focus();
+        if (
+          game.state === 'TITLE' ||
+          game.state === 'ATTRACT_PREVIEW' ||
+          game.state === 'HIGH_SCORES'
+        ) {
+          game.enterSelectPlayers();
+        }
+      });
+
+      btnTitle.addEventListener('click', () => {
+        window.SID.unlock();
+        game.enterTitle(true);
+        canvas.focus();
+      });
+
+      btnStart.addEventListener('click', () => {
+        window.SID.unlock();
+        const spd = parseInt(selSpeed.value, 10) || 4;
+        game.quickStart(1, spd, 1);
+        canvas.focus();
+      });
+
+      btnPause.addEventListener('click', () => {
+        if (game.state === 'PLAYING') {
+          game.paused = !game.paused;
+          btnPause.classList.toggle('active', game.paused);
+        }
+        canvas.focus();
+      });
+
+      btnSid.addEventListener('click', () => {
+        window.SID.unlock();
+        const muted = window.SID.toggleMute();
+        updateSidButton(muted);
+        canvas.focus();
+      });
+
+      btnCrt.addEventListener('click', () => {
+        const isOn = crtFrame.classList.toggle('crt-on');
+        btnCrt.textContent = isOn ? 'CRT: EIN' : 'CRT: AUS';
+        btnCrt.classList.toggle('active', isOn);
+        canvas.focus();
+      });
+
+      const triggerWarp = () => {
+        window.SID.unlock();
+        const spd = parseInt(selSpeed.value, 10) || 4;
+        const lvVal = selLevel.value;
+        const lv = lvVal === 'WELL_DONE' ? 'WELL_DONE' : parseInt(lvVal, 10) || 1;
+        game.quickStart(1, spd, lv);
+        canvas.focus();
+      };
+
+      btnWarp.addEventListener('click', triggerWarp);
+      selLevel.addEventListener('change', triggerWarp);
+
+      // Virtual Touch Joystick Bindings
+      const bindTouchBtn = (el, dir) => {
+        const press = (e) => {
+          e.preventDefault();
+          el.classList.add('pressed');
+          game.setTouchInput(dir, true);
+        };
+        const release = (e) => {
+          e.preventDefault();
+          el.classList.remove('pressed');
+          game.setTouchInput(dir, false);
+        };
+        el.addEventListener('pointerdown', press);
+        el.addEventListener('pointerup', release);
+        el.addEventListener('pointercancel', release);
+        el.addEventListener('pointerleave', release);
+      };
+
+      document.querySelectorAll('.touch-btn[data-dir]').forEach((btn) => {
+        bindTouchBtn(btn, btn.getAttribute('data-dir'));
+      });
+      bindTouchBtn(document.getElementById('touch-fire'), 'jump');
+    })();
+  </script>
+</body>
+</html>
